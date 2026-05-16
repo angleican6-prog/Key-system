@@ -1,60 +1,39 @@
 const express = require("express");
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-
-// store keys in memory (simple version)
 const keys = {};
 
-// 24 hour limit
-const EXPIRY_TIME = 24 * 60 * 60 * 1000;
+function generateKey() {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+}
 
-// ------------------------
-// Generate Key
-// ------------------------
-app.get("/generate", (req, res) => {
-    const key = Math.random().toString(36).substring(2, 10).toUpperCase();
+app.get("/", (req, res) => {
+    const key = generateKey();
 
-    keys[key] = {
-        createdAt: Date.now()
-    };
+    keys[key] = Date.now() + 24 * 60 * 60 * 1000;
 
-    res.json({
-        key: key,
-        expiresIn: "24h"
-    });
+    res.send(`
+        <html>
+        <body style="background:#111;color:white;font-family:sans-serif;text-align:center;padding-top:100px;">
+            <h1>Your Key</h1>
+            <h2>${key}</h2>
+            <p>Expires in 24 hours</p>
+        </body>
+        </html>
+    `);
 });
 
-// ------------------------
-// Validate Key
-// ------------------------
-app.get("/validate", (req, res) => {
+app.get("/verify", (req, res) => {
     const key = req.query.key;
 
-    const data = keys[key];
-
-    if (!data) {
-        return res.json({ valid: false, reason: "not_found" });
+    if (keys[key] && Date.now() < keys[key]) {
+        res.json({ valid: true });
+    } else {
+        res.json({ valid: false });
     }
-
-    const now = Date.now();
-
-    if (now - data.createdAt > EXPIRY_TIME) {
-        return res.json({ valid: false, reason: "expired" });
-    }
-
-    return res.json({ valid: true });
 });
 
-// ------------------------
-// Fix Railway "Cannot GET /"
-// ------------------------
-app.get("/", (req, res) => {
-    res.send("Key system online");
-});
-
-// ------------------------
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log("Server running on port " + PORT);
+    console.log("Key system online");
 });
