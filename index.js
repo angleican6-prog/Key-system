@@ -1,39 +1,40 @@
 const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
 
 const keys = {};
 
-function generateKey() {
-    return Math.random().toString(36).substring(2, 10).toUpperCase();
-}
+const FIVE_YEARS = 5 * 365 * 24 * 60 * 60 * 1000;
 
-app.get("/", (req, res) => {
-    const key = generateKey();
+app.post("/generate", (req, res) => {
+    const key = "AEBOY-" + Math.random().toString(36).substring(2, 10);
 
-    keys[key] = Date.now() + 24 * 60 * 60 * 1000;
+    keys[key] = {
+        createdAt: Date.now(),
+        expiresAt: Date.now() + FIVE_YEARS
+    };
 
-    res.send(`
-        <html>
-        <body style="background:#111;color:white;font-family:sans-serif;text-align:center;padding-top:100px;">
-            <h1>Your Key</h1>
-            <h2>${key}</h2>
-            <p>Expires in 24 hours</p>
-        </body>
-        </html>
-    `);
+    res.json({
+        key,
+        expiresAt: keys[key].expiresAt
+    });
 });
 
-app.get("/verify", (req, res) => {
-    const key = req.query.key;
+app.post("/validate", (req, res) => {
+    const { key } = req.body;
 
-    if (keys[key] && Date.now() < keys[key]) {
-        res.json({ valid: true });
-    } else {
-        res.json({ valid: false });
+    if (!keys[key]) {
+        return res.json({ valid: false, reason: "Invalid key" });
     }
+
+    if (Date.now() > keys[key].expiresAt) {
+        return res.json({ valid: false, reason: "Expired" });
+    }
+
+    res.json({ valid: true });
 });
 
-app.listen(PORT, () => {
-    console.log("Key system online");
+app.listen(3000, () => {
+    console.log("Server running");
 });
