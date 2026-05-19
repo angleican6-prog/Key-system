@@ -3,10 +3,13 @@ const app = express();
 
 app.use(express.json());
 
+// In-memory key storage (NOTE: resets when server restarts)
 const keys = {};
 
+// 5 years in milliseconds
 const FIVE_YEARS = 5 * 365 * 24 * 60 * 60 * 1000;
 
+// Generate Key
 app.post("/generate", (req, res) => {
     const key = "AEBOY-" + Math.random().toString(36).substring(2, 10);
 
@@ -16,25 +19,40 @@ app.post("/generate", (req, res) => {
     };
 
     res.json({
-        key,
+        success: true,
+        key: key,
         expiresAt: keys[key].expiresAt
     });
 });
 
+// Validate Key
 app.post("/validate", (req, res) => {
     const { key } = req.body;
 
-    if (!keys[key]) {
+    if (!key) {
+        return res.json({ valid: false, reason: "No key provided" });
+    }
+
+    const data = keys[key];
+
+    if (!data) {
         return res.json({ valid: false, reason: "Invalid key" });
     }
 
-    if (Date.now() > keys[key].expiresAt) {
-        return res.json({ valid: false, reason: "Expired" });
+    if (Date.now() > data.expiresAt) {
+        return res.json({ valid: false, reason: "Expired key" });
     }
 
-    res.json({ valid: true });
+    return res.json({ valid: true });
 });
 
-app.listen(3000, () => {
-    console.log("Server running");
+// Home route
+app.get("/", (req, res) => {
+    res.send("Key system is running");
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
 });
