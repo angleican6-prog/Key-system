@@ -2,8 +2,11 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🔑 Lifetime key
-const LIFETIME_KEY = "SEL4KNOL";
+// 🔑 Lifetime keys
+const LIFETIME_KEYS = [
+    "SEL4KNOL",
+    "DFAJK4OM"
+];
 
 // normal generated keys
 const keys = {};
@@ -50,17 +53,20 @@ app.get("/verify", (req, res) => {
     console.log("User-Agent:", req.headers["user-agent"]);
     console.log("-----------------------");
 
+
     if (!key) {
         return res.json({ valid: false });
     }
 
-    // Lifetime key
-    if (key === LIFETIME_KEY) {
+
+    // Lifetime keys
+    if (LIFETIME_KEYS.includes(key)) {
         return res.json({
             valid: true,
             type: "lifetime"
         });
     }
+
 
     // Normal 24h keys
     if (keys[key] && Date.now() < keys[key]) {
@@ -70,8 +76,12 @@ app.get("/verify", (req, res) => {
         });
     }
 
-    return res.json({ valid: false });
+
+    return res.json({ 
+        valid: false 
+    });
 });
+
 
 app.listen(PORT, () => {
     console.log("Key system running");
